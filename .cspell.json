@@ -19,6 +19,7 @@
     "chowns",
     "commitlint",
     "crocodilestick",
+    "DBPATH",
     "helmignore",
     "hostnames",
     "httproute",
