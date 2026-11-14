@@ -1,0 +1,41 @@
+suite: HTTPRoute
+release:
+  name: calibre-web-automated
+templates:
+  - templates/httproute.yaml
+tests:
+  - it: renders nothing unless enabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: routes its hostnames to the Service's port 80
+    set:
+      httpRoute:
+        enabled: true
+        parentRefs:
+          - name: gateway
+            namespace: ingress
+        hostnames:
+          - books.example.com
+    asserts:
+      - equal:
+          path: spec.parentRefs
+          value:
+            - name: gateway
+              namespace: ingress
+      - equal:
+          path: spec.hostnames
+          value: [books.example.com]
+      - equal:
+          path: spec.rules[0].backendRefs
+          value:
+            - name: calibre-web-automated
+              port: 80
+
+  - it: needs a parent when enabled
+    set:
+      httpRoute.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: httpRoute.parentRefs is required when httpRoute is enabled

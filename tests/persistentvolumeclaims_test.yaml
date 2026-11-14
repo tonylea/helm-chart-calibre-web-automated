@@ -1,0 +1,64 @@
+suite: PersistentVolumeClaims
+release:
+  name: calibre-web-automated
+templates:
+  - templates/persistentvolumeclaims.yaml
+tests:
+  - it: claims config, ingest, library and processed books, each ReadWriteOnce
+    asserts:
+      - hasDocuments:
+          count: 4
+      - equal:
+          path: metadata.name
+          value: calibre-web-automated-config
+        documentIndex: 0
+      - equal:
+          path: spec.resources.requests.storage
+          value: 1Gi
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: calibre-web-automated-ingest
+        documentIndex: 1
+      - equal:
+          path: spec.resources.requests.storage
+          value: 1Gi
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: calibre-web-automated-library
+        documentIndex: 2
+      - equal:
+          path: spec.resources.requests.storage
+          value: 10Gi
+        documentIndex: 2
+      - equal:
+          path: metadata.name
+          value: calibre-web-automated-processed-books
+        documentIndex: 3
+      - equal:
+          path: spec.resources.requests.storage
+          value: 10Gi
+        documentIndex: 3
+      - equal:
+          path: spec.accessModes
+          value: [ReadWriteOnce]
+
+  - it: leaves the class to the cluster's default unless one is named
+    asserts:
+      - notExists:
+          path: spec.storageClassName
+
+  - it: uses the size and class it's given
+    set:
+      persistence.library.size: 20Gi
+      persistence.library.storageClassName: fast
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 20Gi
+        documentIndex: 2
+      - equal:
+          path: spec.storageClassName
+          value: fast
+        documentIndex: 2

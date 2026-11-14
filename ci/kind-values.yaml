@@ -1,0 +1,4 @@
+# Runs the settings init container against a fresh config claim.
+settings:
+  koreader_sync_enabled: true
+  cwa_update_notifications: false
