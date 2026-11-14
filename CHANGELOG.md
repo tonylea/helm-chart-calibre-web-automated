@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.1.0](https://github.com/tonylea/helm-chart-calibre-web-automated/compare/v1.0.0...v1.1.0) (2026-11-14)
+
+### Features
+
+* set a user's password from an existing Secret before every start ([5ad9378](https://github.com/tonylea/helm-chart-calibre-web-automated/commit/5ad9378475ffefa0f0fb167f187731dee6f0e0d8))
+
+### Documentation
+
+* describe the adminPassword values ([03388e3](https://github.com/tonylea/helm-chart-calibre-web-automated/commit/03388e39c14a321706c6926ea2d44c415d65fd8d))
+
 ## 1.0.0 (2026-11-14)
 
 ### Features
