@@ -16,6 +16,7 @@
     "calibre",
     "chown",
     "chowning",
+    "chowns",
     "commitlint",
     "crocodilestick",
     "helmignore",
@@ -28,6 +29,7 @@
     "PGID",
     "PUID",
     "secretlint",
+    "timezone",
     "tonylea",
     "unittest"
   ]
