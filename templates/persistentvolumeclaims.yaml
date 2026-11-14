@@ -1,0 +1,19 @@
+{{- range $key, $name := dict "config" "config" "library" "library" "processedBooks" "processed-books" "ingest" "ingest" }}
+{{- $volume := index $.Values.persistence $key }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "calibre-web-automated.labels" $ | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with $volume.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $volume.size }}
+{{- end }}
