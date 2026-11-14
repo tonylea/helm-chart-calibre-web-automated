@@ -12,6 +12,7 @@ The chart runs one replica:
     CWA never prunes them, so this claim grows with everything imported.
   - `<release>-ingest` at `/cwa-book-ingest`, for books waiting to be imported; CWA deletes each one once it's in the library.
 - An init container, when `settings` is given, that writes them into `cwa.db` with CWA's own code before every start.
+- An init container, when `adminPassword.existingSecret` is given, that sets a user's password from that Secret before every start, with Calibre-Web's own `cps.py -s` option.
 - A ClusterIP Service on 80, and an optional Gateway API `HTTPRoute` to it.
 - A start-up and readiness probe on `/health`, which fails while `metadata.db` can't be opened, and a liveness probe on the port.
 
@@ -28,6 +29,9 @@ CWA logs to stdout and exposes no Prometheus metrics, so the chart has no `Servi
 | `networkShareMode` | `false` |
 | `resources` | requests `cpu: 100m`, `memory: 512Mi`; no limits |
 | `settings` | none |
+| `adminPassword.existingSecret` | none |
+| `adminPassword.key` | `password` |
+| `adminPassword.username` | `admin` |
 | `persistence.config` | `size: 1Gi`, the cluster's default class |
 | `persistence.library` | `size: 10Gi`, the cluster's default class |
 | `persistence.processedBooks` | `size: 10Gi`, the cluster's default class |
@@ -42,6 +46,10 @@ Set `networkShareMode` when the claims are on a network share such as NFS or SMB
 Each key in `settings` is a column of `cwa.db`'s `cwa_settings` table, as in [`cwa_schema.sql`](https://github.com/crocodilestick/Calibre-Web-Automated/blob/main/scripts/cwa_schema.sql).
 An unknown key stops the pod from starting.
 A setting given here is reset to its value at every start, so a change made to it in the web UI lasts only until the next restart.
+
+Without `adminPassword.existingSecret`, passwords are left to the web UI, and a new install's login is `admin` with `admin123`.
+With it, the password of `adminPassword.username` is set from the Secret's `adminPassword.key` at every start, so a change made in the web UI lasts only until the next restart.
+The user must already exist; CWA creates `admin` on a first start.
 
 ## Requirements
 

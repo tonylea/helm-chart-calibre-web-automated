@@ -19,8 +19,10 @@ spec:
         {{- include "calibre-web-automated.labels" . | nindent 8 }}
     spec:
       # The image starts as root and drops to its abc user (PUID and PGID, 1000 by default) after chowning its folders.
-      {{- with .Values.settings }}
+      {{- if or .Values.settings .Values.adminPassword.existingSecret }}
       initContainers:
+      {{- end }}
+      {{- with .Values.settings }}
         # Writes the settings with CWA's own code, which creates cwa.db on a first start.
         - name: settings
           image: {{ include "calibre-web-automated.image" $ | quote }}
@@ -43,6 +45,30 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
+      {{- end }}
+      {{- with .Values.adminPassword }}
+      {{- if .existingSecret }}
+        # Calibre-Web's own -s option, which creates app.db and its admin user on a first start, sets the password and exits.
+        - name: admin-password
+          image: {{ include "calibre-web-automated.image" $ | quote }}
+          workingDir: /app/calibre-web-automated
+          command:
+            - /lsiopy/bin/python3
+            - cps.py
+            - -s
+            - {{ printf "%s:$(PASSWORD)" .username | quote }}
+          env:
+            - name: CALIBRE_DBPATH
+              value: /config
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .existingSecret }}
+                  key: {{ .key }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      {{- end }}
       {{- end }}
       containers:
         - name: calibre-web-automated

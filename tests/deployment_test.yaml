@@ -85,7 +85,7 @@ tests:
               persistentVolumeClaim:
                 claimName: calibre-web-automated-ingest
 
-  - it: has no init container unless settings are given
+  - it: has no init container unless settings or a password Secret are given
     asserts:
       - notExists:
           path: spec.template.spec.initContainers
@@ -108,6 +108,57 @@ tests:
           value:
             - name: config
               mountPath: /config
+
+  - it: sets the admin password from the Secret with Calibre-Web's own -s option
+    set:
+      adminPassword.existingSecret: calibre-admin
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: admin-password
+      - equal:
+          path: spec.template.spec.initContainers[0].command
+          value: [/lsiopy/bin/python3, cps.py, -s, "admin:$(PASSWORD)"]
+      - equal:
+          path: spec.template.spec.initContainers[0].workingDir
+          value: /app/calibre-web-automated
+      - equal:
+          path: spec.template.spec.initContainers[0].env
+          value:
+            - name: CALIBRE_DBPATH
+              value: /config
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: calibre-admin
+                  key: password
+
+  - it: sets the password of the user and key it's given
+    set:
+      adminPassword:
+        existingSecret: calibre-admin
+        key: secret
+        username: librarian
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].command[3]
+          value: "librarian:$(PASSWORD)"
+      - equal:
+          path: spec.template.spec.initContainers[0].env[1].valueFrom.secretKeyRef.key
+          value: secret
+
+  - it: writes settings before setting the password when given both
+    set:
+      settings:
+        koreader_sync_enabled: true
+      adminPassword.existingSecret: calibre-admin
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: settings
+      - equal:
+          path: spec.template.spec.initContainers[1].name
+          value: admin-password
 
   - it: sets affinity only when given
     asserts:

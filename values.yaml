@@ -19,6 +19,14 @@ resources:
 # A setting given here is reset to this value at the next start if it's changed in the web UI.
 settings: {}
 
+# An existing Secret holding the password for a Calibre-Web user, set by an init container before every start.
+# Empty leaves passwords to the web UI; a new install's login is then admin with admin123.
+adminPassword:
+  existingSecret: ""
+  key: password
+  # The user whose password is set, which must already exist; CWA creates admin on a first start.
+  username: admin
+
 # ReadWriteOnce claims. An empty storageClassName uses the cluster's default class.
 persistence:
   # CWA's and Calibre-Web's SQLite databases and Calibre's config.
