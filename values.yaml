@@ -1,0 +1,47 @@
+image:
+  repository: crocodilestick/calibre-web-automated
+  # Empty uses the chart's appVersion.
+  tag: ""
+
+# A tz database name, for example Europe/London.
+timezone: Etc/UTC
+
+# true when the library or config is on a network share (NFS, SMB): CWA then turns off SQLite's WAL, skips chown and polls for new files.
+networkShareMode: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+# CWA settings, by their column names in cwa.db's cwa_settings table, written by an init container before every start, for example:
+#   koreader_sync_enabled: true
+# A setting given here is reset to this value at the next start if it's changed in the web UI.
+settings: {}
+
+# ReadWriteOnce claims. An empty storageClassName uses the cluster's default class.
+persistence:
+  # CWA's and Calibre-Web's SQLite databases and Calibre's config.
+  config:
+    size: 1Gi
+    storageClassName: ""
+  # The Calibre library: the books and metadata.db.
+  library:
+    size: 10Gi
+    storageClassName: ""
+  # Originals of every imported, converted and fixed book, which CWA never prunes.
+  processedBooks:
+    size: 10Gi
+    storageClassName: ""
+  # Books dropped here are imported into the library, then deleted.
+  ingest:
+    size: 1Gi
+    storageClassName: ""
+
+affinity: {}
+
+# A Gateway API HTTPRoute to the web UI.
+httpRoute:
+  enabled: false
+  parentRefs: []
+  hostnames: []

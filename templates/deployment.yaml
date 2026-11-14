@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "calibre-web-automated.labels" . | nindent 4 }}
+spec:
+  # SQLite allows one server, and the claims are ReadWriteOnce, so the old pod stops before the new one starts.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "calibre-web-automated.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "calibre-web-automated.labels" . | nindent 8 }}
+    spec:
+      # The image starts as root and drops to its abc user (PUID and PGID, 1000 by default) after chowning its folders.
+      {{- with .Values.settings }}
+      initContainers:
+        # Writes the settings with CWA's own code, which creates cwa.db on a first start.
+        - name: settings
+          image: {{ include "calibre-web-automated.image" $ | quote }}
+          command:
+            - /lsiopy/bin/python3
+            - -c
+            - |
+              import json, os, sys
+              sys.path.insert(1, "/app/calibre-web-automated/scripts")
+              from cwa_db import CWA_DB
+              settings = json.loads(os.environ["CWA_SETTINGS"])
+              db = CWA_DB()
+              unknown = sorted(set(settings) - set(db.cwa_settings))
+              if unknown:
+                  sys.exit("Unknown CWA settings: " + ", ".join(unknown))
+              db.update_cwa_settings(settings)
+          env:
+            - name: CWA_SETTINGS
+              value: {{ toJson . | quote }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      {{- end }}
+      containers:
+        - name: calibre-web-automated
+          image: {{ include "calibre-web-automated.image" . | quote }}
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            - name: NETWORK_SHARE_MODE
+              value: {{ .Values.networkShareMode | quote }}
+          ports:
+            - name: http
+              containerPort: 8083
+          # Start-up chowns /config and the library before the web server starts, so it gets 5 minutes.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          # /health fails while metadata.db is locked, which a long import can do, so only readiness uses it.
+          livenessProbe:
+            tcpSocket:
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: processed-books
+              mountPath: /config/processed_books
+            - name: library
+              mountPath: /calibre-library
+            - name: ingest
+              mountPath: /cwa-book-ingest
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ printf "%s-config" .Release.Name }}
+        - name: processed-books
+          persistentVolumeClaim:
+            claimName: {{ printf "%s-processed-books" .Release.Name }}
+        - name: library
+          persistentVolumeClaim:
+            claimName: {{ printf "%s-library" .Release.Name }}
+        - name: ingest
+          persistentVolumeClaim:
+            claimName: {{ printf "%s-ingest" .Release.Name }}

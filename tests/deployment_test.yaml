@@ -1,0 +1,130 @@
+suite: Deployment
+release:
+  name: calibre-web-automated
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: runs one replica of the chart's appVersion, stopping the old pod first
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: crocodilestick/calibre-web-automated:v4.0.8
+
+  - it: passes the timezone and network share mode as CWA's environment
+    set:
+      timezone: Europe/London
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env
+          value:
+            - name: TZ
+              value: Europe/London
+            - name: NETWORK_SHARE_MODE
+              value: "false"
+
+  - it: probes /health for start-up and readiness, and the port for liveness
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /health
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            tcpSocket:
+              port: http
+
+  - it: requests CPU and memory, with no limits
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+
+  - it: mounts each folder from the release's claims, processed books inside config
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: config
+              mountPath: /config
+            - name: processed-books
+              mountPath: /config/processed_books
+            - name: library
+              mountPath: /calibre-library
+            - name: ingest
+              mountPath: /cwa-book-ingest
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: config
+              persistentVolumeClaim:
+                claimName: calibre-web-automated-config
+            - name: processed-books
+              persistentVolumeClaim:
+                claimName: calibre-web-automated-processed-books
+            - name: library
+              persistentVolumeClaim:
+                claimName: calibre-web-automated-library
+            - name: ingest
+              persistentVolumeClaim:
+                claimName: calibre-web-automated-ingest
+
+  - it: has no init container unless settings are given
+    asserts:
+      - notExists:
+          path: spec.template.spec.initContainers
+
+  - it: writes the settings into cwa.db on the config claim before CWA starts
+    set:
+      settings:
+        koreader_sync_enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].image
+          value: crocodilestick/calibre-web-automated:v4.0.8
+      - equal:
+          path: spec.template.spec.initContainers[0].env
+          value:
+            - name: CWA_SETTINGS
+              value: '{"koreader_sync_enabled":true}'
+      - equal:
+          path: spec.template.spec.initContainers[0].volumeMounts
+          value:
+            - name: config
+              mountPath: /config
+
+  - it: sets affinity only when given
+    asserts:
+      - notExists:
+          path: spec.template.spec.affinity
+
+  - it: passes affinity through
+    set:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: example.com/zone
+                    operator: In
+                    values: ["a"]
+    asserts:
+      - equal:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key
+          value: example.com/zone

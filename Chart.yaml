@@ -1,0 +1,9 @@
+apiVersion: v2
+name: calibre-web-automated
+description: Deploys Calibre-Web-Automated, a self-hosted e-book library with automatic import, conversion and KOReader sync
+type: application
+version: 1.0.0
+appVersion: "v4.0.8"
+home: https://github.com/tonylea/helm-chart-calibre-web-automated
+sources:
+  - https://github.com/crocodilestick/Calibre-Web-Automated

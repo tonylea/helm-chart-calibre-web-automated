@@ -1,0 +1,36 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "dictionaries": [
+    "softwareTerms"
+  ],
+  "ignorePaths": [
+    ".git/**",
+    ".husky/**",
+    "node_modules/**",
+    "CHANGELOG.md",
+    "package-lock.json"
+  ],
+  "words": [
+    "appVersion",
+    "calibre",
+    "chown",
+    "chowning",
+    "chowns",
+    "commitlint",
+    "crocodilestick",
+    "helmignore",
+    "hostnames",
+    "httproute",
+    "koreader",
+    "kubeconform",
+    "lsiopy",
+    "nindent",
+    "PGID",
+    "PUID",
+    "secretlint",
+    "timezone",
+    "tonylea",
+    "unittest"
+  ]
+}
